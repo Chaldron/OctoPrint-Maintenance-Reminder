@@ -30,7 +30,7 @@ $(function () {
             if (data.type === "reminders_updated") {
                 data.reminders.forEach(function (updated, i) {
                     var reminder = self.pluginSettings.reminders()[i];
-                    reminder.count(updated.count);
+                    reminder.hours(updated.hours);
                     reminder.interval(updated.interval);
                     reminder.message(updated.message);
                 });
@@ -71,12 +71,16 @@ $(function () {
         // === REMINDERS ===
 
         self.isAlert = function (reminder) {
-            return Number(reminder.count()) >= Number(reminder.interval());
+            return Number(reminder.hours()) >= Number(reminder.interval());
+        };
+
+        self.hoursText = function (reminder) {
+            return (Number(reminder.hours()) || 0).toFixed(1);
         };
 
         self.percentage = function (reminder) {
             return Math.round(
-                Math.min((reminder.count() / reminder.interval()) * 100, 100)
+                Math.min((reminder.hours() / reminder.interval()) * 100, 100)
             );
         };
 
@@ -94,8 +98,8 @@ $(function () {
         self.addReminder = function () {
             var reminder = {
                 message: ko.observable("New Reminder"),
-                interval: ko.observable(10),
-                count: ko.observable(0)
+                interval: ko.observable(200),
+                hours: ko.observable(0)
             };
 
             self.pluginSettings.reminders.push(reminder);
@@ -106,24 +110,14 @@ $(function () {
         };
 
         self.resetReminder = function (item) {
-            item.count(0);
+            item.hours(0);
         };
 
         self.resetReminderByIndex = function (index) {
             var reminder = self.pluginSettings.reminders()[index];
 
-            reminder.count(0);
+            reminder.hours(0);
             self.settingsViewModel.saveData();
-
-            $(".maintenance-popover .bar").eq(index).css("width", "0%");
-            $(".maintenance-popover #count").eq(index).text("0");
-            $(".maintenance-popover .maintenance-row")
-                .eq(index)
-                .removeClass("maintenance-alert");
-        };
-
-        self.incrementReminder = function (item) {
-            item.count(item.count() + 1);
         };
 
         self.needsMaintenance = ko.pureComputed(function () {

@@ -1,21 +1,11 @@
 # OctoPrint-Maintenance-Reminder
 
-This plugin counts your prints and reminds you when maintenance is due.
+Fork of [GarronAnderson/OctoPrint-Maintenance-Reminder](https://github.com/GarronAnderson/OctoPrint-Maintenance-Reminder) that tracks print hours instead of print counts.
 
-I wrote this plugin because I wanted OctoPrint to remind me to wash my PEI sheet and was suprised to find there wasn't already a plugin for that. So, I decided to fill the gap.
+Every finished, failed or cancelled print adds its print time to each reminder. A reminder is due once its hours reach its interval: the navbar turns red, a dialog appears before the next print, and a Pushover message is sent through the token and user key of the Pushover plugin. "Mark Complete" resets a reminder to zero.
 
-This plugin counts completed prints and increments counters. You set up a reminder with a certain number of prints, and when it reaches that number, a message shows in the navbar and a modal appears before each print. You are offered the option to cancel the print, ignore the maintenance, or reset and continue. You can also view maintenance status in a popover from the navbar.
-
-I may add support for notifications via ntfy.sh in the future.
+Only prints run through OctoPrint are counted. To seed a reminder, type the hours already printed into its hours field under Settings > Maintenance Reminder.
 
 ## Setup
 
-Install via the bundled [Plugin Manager](https://docs.octoprint.org/en/main/bundledplugins/pluginmanager.html)
-or manually using this URL:
-
-    https://github.com/GarronAnderson/OctoPrint-Maintenance-Reminder/archive/master.zip
-
-## Configuration
-
-You can choose whether or not to count failed and canceled prints toward maintenance (I would). 
-Reminders have an interval in prints when they are due. You can add, modify, and remove reminders through the settings under "Maintenance Reminder."
+    pip install https://github.com/Chaldron/OctoPrint-Maintenance-Reminder/archive/master.zip

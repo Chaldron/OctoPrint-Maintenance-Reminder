@@ -39,10 +39,10 @@
                     <td data-bind="text: message"></td>
 
                     <td style="text-align: right; white-space: nowrap;">
-                        <span data-bind="text: count"></span>
+                        <span data-bind="text: $parent.hoursText($data)"></span>
                         /
                         <span data-bind="text: interval"></span>
-                        prints
+                        h
 
                         <button type="button"
                                 class="btn btn-mini btn-success reminder-reset"

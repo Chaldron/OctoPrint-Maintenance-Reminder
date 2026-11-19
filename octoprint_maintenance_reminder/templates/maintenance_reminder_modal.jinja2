@@ -12,13 +12,13 @@
         >
             &times;
         </a>
-        <h3>Maintenance Reccommended</h3>
+        <h3>Maintenance Recommended</h3>
     </div>
 	
     <div class="modal-body">
 	<table class="table table-striped">
 			<thead>
-				<tr><th style="width: 200px">Message</th><th>Count</th><th>Reset</th></tr>
+				<tr><th style="width: 200px">Message</th><th>Print hours</th><th>Reset</th></tr>
 			</thead>
 			<tbody data-bind="foreach: pluginSettings.reminders">
 				<tr data-bind="css: { 'maintenance-alert': $parent.isAlert($data) }">
@@ -27,7 +27,7 @@
 					    data-bind="value: message" />
 					</td>
 					<td>
-					<span data-bind="text: count"></span>/<input data-bind="value: interval" style="width: 50px; display: inline-block;"/> prints
+					<span data-bind="text: $parent.hoursText($data)"></span> / <input data-bind="value: interval" style="width: 50px; display: inline-block;"/> h
 					</td>
 					<td>
 						<button class="btn btn-success btn-mini"

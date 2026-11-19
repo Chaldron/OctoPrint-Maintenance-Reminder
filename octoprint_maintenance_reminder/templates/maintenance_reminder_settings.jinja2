@@ -16,7 +16,7 @@
 					    data-bind="value: message" style="width:250px"/>
 					</td>
 					<td style="text-align:right">
-					<span data-bind="text: count"></span> / <input data-bind="value: interval" style="width: 25px; display: inline-block;"/> prints
+					<input data-bind="value: hours" style="width: 50px; display: inline-block;"/> / <input data-bind="value: interval" style="width: 40px; display: inline-block;"/> h
 					<button class="btn btn-danger btn-mini"
 							data-bind="click: $parent.removeReminder">
 							<i class="fa fa-trash"></i> Delete
@@ -24,10 +24,6 @@
 					<button class="btn btn-success btn-mini"
 							data-bind="click: $parent.resetReminder">
 							<i class="fa fa-check-square"></i> Mark Complete
-					</button>
-					<button class="btn btn-primary btn-mini"
-							data-bind="click: $parent.incrementReminder">
-							<i class="fa fa-plus"></i> Increment
 					</button>
 					</td>
 				</tr>
@@ -55,21 +51,12 @@
 		</div>
 		<div class="tab-pane" id="tab_settings">
 		  <div class="control-group">
-			<label class="control-label">Count Failed Prints</label>
+			<label class="control-label">Pushover</label>
 			<div class="controls">
 				<label class="checkbox">
 					<input type="checkbox"
-						   data-bind="checked: pluginSettings.count_failed">
-					<span class="help-inline">Count failed prints toward maintenance</span>
-				</label>
-			</div>
-		
-			<label class="control-label">Count Cancelled Prints</label>
-			<div class="controls">
-				<label class="checkbox">
-					<input type="checkbox"
-						   data-bind="checked: pluginSettings.count_cancelled">
-					<span class="help-inline">Count cancelled prints toward maintenance</span>
+						   data-bind="checked: pluginSettings.notify_pushover">
+					<span class="help-inline">Notify through the Pushover plugin's token and user key when a reminder comes due</span>
 				</label>
 			</div>
 			

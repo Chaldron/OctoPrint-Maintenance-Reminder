@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "OctoPrint-Maintenance-Reminder"
-version = "1.0.0"
-description = "maintenance notifications that track your print count"
+version = "1.0.0+chaldron.1"
+description = "maintenance notifications that track your print hours"
 authors = [
     {name = "Garron Anderson", email = "garronanderson4321@gmail.com"}
 ]
@@ -32,7 +32,7 @@ include = [
 maintenance_reminder = "octoprint_maintenance_reminder"
 
 [project.urls]
-Homepage = "https://github.com/GarronAnderson/OctoPrint-Maintenance-Reminder"
+Homepage = "https://github.com/Chaldron/OctoPrint-Maintenance-Reminder"
 
 [project.optional-dependencies]
 develop = [

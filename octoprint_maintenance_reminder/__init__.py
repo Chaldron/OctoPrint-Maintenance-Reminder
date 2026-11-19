@@ -1,10 +1,13 @@
-# coding=utf-8
-from __future__ import absolute_import
-
-from flask import jsonify
-
 import octoprint.plugin
-import octoprint.events
+import requests
+from octoprint.events import Events
+
+
+def number(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 class MaintenanceReminderPlugin(
@@ -12,119 +15,109 @@ class MaintenanceReminderPlugin(
     octoprint.plugin.AssetPlugin,
     octoprint.plugin.TemplatePlugin,
     octoprint.plugin.EventHandlerPlugin,
-    octoprint.plugin.StartupPlugin,
 ):
-    
-    def __init__(self):
-        # Used for ignoring marks of failed prints after a user cancels
-        self.last_event = None
-        self.last_time = None
-
-    ##~~ SettingsPlugin mixin
-
     def get_settings_defaults(self):
         return {
             "reminders": [
-                {"message":"Wash PEI Sheet", "interval": 10, "count": 0},
-                {"message":"Lubricate Fittings", "interval": 600, "count": 0},
+                {"message": "Clean and lubricate smooth rods", "interval": 200, "hours": 0},
+                {"message": "Clean fans", "interval": 200, "hours": 0},
             ],
-            "count_failed": True,
-            "count_cancelled": True,
+            "notify_pushover": True,
             "show_navbar_message": True,
             "warning_threshold": 50,
             "danger_threshold": 80,
         }
-        # reminders is a list of dicts with (message, interval (in prints), (current) count)
-
-    ##~~ AssetPlugin mixin
 
     def get_assets(self):
-        # Define your plugin's asset files to automatically include in the
-        # core UI here.
         return {
             "js": ["js/maintenance_reminder.js"],
             "css": ["css/maintenance_reminder.css"],
             "less": ["less/maintenance_reminder.less"],
         }
 
-    ##~~ Softwareupdate hook
-
     def get_update_information(self):
-        # Define the configuration for your plugin to use with the Software Update
-        # Plugin here. See https://docs.octoprint.org/en/main/bundledplugins/softwareupdate.html
-        # for details.
         return {
             "maintenance_reminder": {
                 "displayName": "Maintenance Reminder",
                 "displayVersion": self._plugin_version,
-                # version check: github repository
                 "type": "github_release",
-                "user": "GarronAnderson",
+                "user": "Chaldron",
                 "repo": "OctoPrint-Maintenance-Reminder",
                 "current": self._plugin_version,
-                # update method: pip
-                "pip": "https://github.com/GarronAnderson/OctoPrint-Maintenance-Reminder/archive/{target_version}.zip",
+                "pip": "https://github.com/Chaldron/OctoPrint-Maintenance-Reminder/archive/{target_version}.zip",
             }
         }
 
-    # Startup Plugin
-    def on_after_startup(self):
-        pass
-
-    # Event Handler Mixin
     def on_event(self, event, payload):
-        reminders = self._settings.get(["reminders"])
-        count_failed = self._settings.get(["count_failed"])
-        count_cancelled = self._settings.get(["count_cancelled"])
-        
-        if (
-            event == octoprint.events.Events.PRINT_FAILED
-            and self.last_event == octoprint.events.Events.PRINT_CANCELLED
-            and payload.get("time") == self.last_time
-        ):
-            # Cancelled prints increment the counter twice without this.
+        # A cancelled print fires PrintCancelled and then PrintFailed, so only PrintFailed is counted.
+        if event not in (Events.PRINT_DONE, Events.PRINT_FAILED):
             return
-        
-        if (event == octoprint.events.Events.PRINT_DONE) or (event == octoprint.events.Events.PRINT_CANCELLED and count_cancelled) or (event == octoprint.events.Events.PRINT_FAILED and count_failed):
-            self.last_event = event
-            self.last_time = payload.get("time")
-            
-            reminders = self._settings.get(["reminders"])
-            for reminder in reminders:
-                reminder["count"] += 1
 
-            self._settings.set(["reminders"], reminders)
-            self._settings.save()
-            
-            self._plugin_manager.send_plugin_message(
-                self._identifier,
-                {
-                    "type": "reminders_updated",
-                    "reminders": reminders
-                }
+        printed_hours = number(payload.get("time")) / 3600
+        if printed_hours <= 0:
+            return
+
+        reminders = self._settings.get(["reminders"])
+        newly_due_reminders = []
+        for reminder in reminders:
+            interval = number(reminder.get("interval"))
+            hours_before = number(reminder.get("hours"))
+            reminder["hours"] = round(hours_before + printed_hours, 3)
+            if interval > 0 and hours_before < interval <= reminder["hours"]:
+                newly_due_reminders.append(reminder)
+
+        self._settings.set(["reminders"], reminders)
+        self._settings.save()
+        self._logger.info("Added %.2f print hours to %d reminders", printed_hours, len(reminders))
+
+        self._plugin_manager.send_plugin_message(
+            self._identifier, {"type": "reminders_updated", "reminders": reminders}
+        )
+
+        if newly_due_reminders and self._settings.get_boolean(["notify_pushover"]):
+            self.notify_pushover(newly_due_reminders)
+
+    def notify_pushover(self, due_reminders):
+        token = self._settings.global_get(["plugins", "pushover", "token"])
+        user_key = self._settings.global_get(["plugins", "pushover", "user_key"])
+        if not token or not user_key:
+            self._logger.info("Pushover plugin has no token and user key, not notifying")
+            return
+
+        message = "\n".join(
+            "{} ({:g} h)".format(reminder["message"], number(reminder["interval"]))
+            for reminder in due_reminders
+        )
+
+        try:
+            response = requests.post(
+                "https://api.pushover.net/1/messages.json",
+                data={
+                    "token": token,
+                    "user": user_key,
+                    "title": "Printer maintenance due",
+                    "message": message,
+                },
+                timeout=10,
             )
+            self._logger.info("Pushover notification sent, status %s", response.status_code)
+        except requests.RequestException as error:
+            self._logger.warning("Pushover notification failed: %s", error)
 
-    # Templates
     def get_template_configs(self):
         return [
             dict(type="settings", custom_bindings=True),
             dict(type="navbar", custom_bindings=True, classes=["dropdown"]),
-            dict(type="generic", template="maintenance_reminder_modal.jinja2")
+            dict(type="generic", template="maintenance_reminder_modal.jinja2"),
         ]
-        
+
     def is_template_autoescaped(self):
         return True
 
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
+
 __plugin_name__ = "Maintenance Reminder"
 __author__ = "Garron Anderson <garronanderson4321@gmail.com>"
-
-# Set the Python version your plugin is compatible with below. Recommended is Python 3 only for all new plugins.
-# OctoPrint 1.4.0 - 1.7.x run under both Python 3 and the end-of-life Python 2.
-# OctoPrint 1.8.0 onwards only supports Python 3.
-__plugin_pythoncompat__ = ">=3.7,<4"  # Only Python 3
+__plugin_pythoncompat__ = ">=3.7,<4"
 
 
 def __plugin_load__():
